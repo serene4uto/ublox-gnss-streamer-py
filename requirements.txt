@@ -4,3 +4,5 @@ pyserial
 pyrtcm==1.0.14
 pyubx2==1.2.35
 pygnssutils==1.0.16
+
+nuitka

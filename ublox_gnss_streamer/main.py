@@ -2,10 +2,10 @@ import argparse
 import sys
 import logging
 from threading import Event
-from .ublox_gnss import UbloxGnss
 import time
 
-from .utils.logger import logger, ColoredFormatter, ColoredLogger
+from ublox_gnss_streamer.ublox_gnss import UbloxGnss
+from ublox_gnss_streamer.utils.logger import logger, ColoredFormatter, ColoredLogger
 
 def parse_args(argv=None):
     parser = argparse.ArgumentParser(description="ublox_gnss_streamer")

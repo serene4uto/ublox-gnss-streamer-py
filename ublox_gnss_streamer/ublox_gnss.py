@@ -26,7 +26,7 @@ from pyubx2 import (
     UBXReader,
 )
 
-from .utils.logger import logger
+from ublox_gnss_streamer.utils.logger import logger
 
 DISCONNECTED = 0
 CONNECTED = 1
