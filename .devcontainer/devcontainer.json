@@ -1,14 +1,11 @@
 {
   "name": "ublox-gnss-streamer-python-dev",
-  "image": "mcr.microsoft.com/devcontainers/python:3.11-bullseye",
+  "image": "python:3.10.12",
   "runArgs": [
     "--name", "ublox-gnss-streamer-python-dev",
     "--privileged",
     "--net", "host",
     "-v", "/dev:/dev"
-  ],
-  "mounts": [
-    "type=bind,source=/dev/bus/usb,target=/dev/bus/usb"
   ],
   "customizations": {
     "vscode": {
@@ -20,6 +17,6 @@
       ]
     }
   },
-  "postCreateCommand": "pip install -r requirements.txt",
-  "remoteUser": "vscode"
+  "postCreateCommand": "pip install -r requirements.txt"
+  // "remoteUser": "vscode"
 }
