@@ -9,7 +9,9 @@ from ublox_gnss_streamer.ublox_gnss import UbloxGnss
 from ublox_gnss_streamer.ublox_gnss_worker import UbloxGnssWorker
 from ublox_gnss_streamer.ntrip_client import NTRIPClient
 from ublox_gnss_streamer.ntrip_client_worker import NTRIPClientWorker
+
 from ublox_gnss_streamer.utils.logger import logger, ColoredFormatter, ColoredLogger
+from ublox_gnss_streamer.utils.threadsafe_deque import ThreadSafeDeque
 
 def parse_args(argv=None):
     parser = argparse.ArgumentParser(description="ublox_gnss_streamer")
@@ -49,10 +51,8 @@ def main(argv=None):
     logger.debug(f"Options: {args}")
     
     stop_event = Event()
-    rtcm_queue = deque(maxlen=10)
-    rtcm_queue_lock = Lock()
-    nmea_queue = deque(maxlen=10)
-    nmea_queue_lock = Lock()
+    rtcm_queue = ThreadSafeDeque(maxlen=10)
+    nmea_queue = ThreadSafeDeque(maxlen=10)
     
     try:
         ublox_gnss_worker = UbloxGnssWorker(
@@ -68,9 +68,7 @@ def main(argv=None):
             ),
             stop_event=stop_event,
             nmea_queue=nmea_queue,
-            nmea_queue_lock=nmea_queue_lock,
             rtcm_queue=rtcm_queue,
-            rtcm_queue_lock=rtcm_queue_lock,
             poll_interval=0.01
         )
         
@@ -90,9 +88,7 @@ def main(argv=None):
             ntrip_server_hz=1,
             stop_event=stop_event,
             nmea_queue=nmea_queue,
-            nmea_queue_lock=nmea_queue_lock,
             rtcm_queue=rtcm_queue,
-            rtcm_queue_lock=rtcm_queue_lock,
         )
         
         while not ublox_gnss_worker.run():

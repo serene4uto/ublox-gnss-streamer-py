@@ -1,7 +1,9 @@
-from .ntrip_client import NTRIPClient
 from threading import Thread, Event, Lock
-from ublox_gnss_streamer.utils.logger import logger
 from collections import deque
+
+from .ntrip_client import NTRIPClient
+from ublox_gnss_streamer.utils.logger import logger
+from ublox_gnss_streamer.utils.threadsafe_deque import ThreadSafeDeque
 
 class NTRIPClientWorker:
     def __init__(
@@ -19,10 +21,8 @@ class NTRIPClientWorker:
         nmea_min_length=0,
         ntrip_server_hz=1,
         stop_event: Event = None,
-        nmea_queue: deque = None,
-        nmea_queue_lock : Lock = None,
-        rtcm_queue: deque = None,
-        rtcm_queue_lock : Lock = None,
+        nmea_queue: ThreadSafeDeque = None,
+        rtcm_queue: ThreadSafeDeque = None,
     ):
         self._client = NTRIPClient(
             host=host,
@@ -46,10 +46,8 @@ class NTRIPClientWorker:
         self.stop_event = stop_event
         self._thread = None
     
-        self.nmea_queue : deque = nmea_queue
-        self.nmea_queue_lock : Lock = nmea_queue_lock
-        self.rtcm_queue : deque = rtcm_queue
-        self.rtcm_queue_lock : Lock = rtcm_queue_lock
+        self.nmea_queue = nmea_queue
+        self.rtcm_queue = rtcm_queue
         
     def _worker(self):
 
@@ -58,22 +56,20 @@ class NTRIPClientWorker:
                 break
             
             # get nmea and send
-            if self.nmea_queue is not None and self.nmea_queue_lock is not None:
-                with self.nmea_queue_lock:
-                    if len(self.nmea_queue) > 0:
-                        nmea = self.nmea_queue.popleft()
-                        logger.debug(f"Received NMEA: {nmea}")
-                        self._client.send_nmea(nmea)
-                    else:
-                        logger.debug("NMEA RX queue is empty")
+            if self.nmea_queue is not None:
+                if len(self.nmea_queue) > 0:
+                    nmea = self.nmea_queue.popleft()
+                    logger.debug(f"Received NMEA: {nmea}")
+                    self._client.send_nmea(nmea)
+                else:
+                    logger.debug("NMEA RX queue is empty")
                         
             # get rtcm from ntrip and send to rtcm_queue
-            if self.rtcm_queue is not None and self.rtcm_queue_lock is not None:
-                with self.rtcm_queue_lock:
-                    for rtcm in self._client.recv_rtcm():
-                        if rtcm is not None:
-                            self.rtcm_queue.append(rtcm)
-                            logger.debug(f"Received RTCM: {rtcm}")
+            if self.rtcm_queue is not None:
+                for rtcm in self._client.recv_rtcm():
+                    if rtcm is not None:
+                        self.rtcm_queue.append(rtcm)
+                        logger.debug(f"Received RTCM: {rtcm}")
             
     def run(self):
 

@@ -2,26 +2,22 @@ from threading import Lock, Event, Thread
 from collections import deque
 from ublox_gnss_streamer.ublox_gnss import UbloxGnss
 from ublox_gnss_streamer.utils.logger import logger
+from ublox_gnss_streamer.utils.threadsafe_deque import ThreadSafeDeque
 
 class UbloxGnssWorker:
     def __init__(
         self,
         gnss: UbloxGnss,
         stop_event: Event = None,
-        nmea_queue: deque = None,
-        nmea_queue_lock: Lock = None,
-        rtcm_queue: deque = None,
-        rtcm_queue_lock: Lock = None,
+        nmea_queue: ThreadSafeDeque = None,
+        rtcm_queue: ThreadSafeDeque = None,
         poll_interval: float = 1.0,
     ):
         self.ublox_gnss = gnss
-
-        # Robustly initialize queues and locks if not provided
-        self.nmea_queue = nmea_queue if nmea_queue is not None else deque(maxlen=10)
-        self.nmea_queue_lock = nmea_queue_lock if nmea_queue_lock is not None else Lock()
-        self.rtcm_queue = rtcm_queue if rtcm_queue is not None else deque()
-        self.rtcm_queue_lock = rtcm_queue_lock if rtcm_queue_lock is not None else Lock()
-        self.stop_event = stop_event if stop_event is not None else Event()
+        
+        self.stop_event = stop_event
+        self.nmea_queue = nmea_queue 
+        self.rtcm_queue = rtcm_queue
 
         self.poll_interval = poll_interval
         self._thread = None
@@ -35,18 +31,16 @@ class UbloxGnssWorker:
                         logger.debug(f"Parsed NAV-PVT: {parsed}")
                     if parsed.identity == "GNGGA":
                         logger.debug(f"Parsed GNGGA: {parsed}")
-                        with self.nmea_queue_lock:
-                            # If parsed is bytes, decode; otherwise, convert to string
-                            if isinstance(raw, bytes):
-                                self.nmea_queue.append(
-                                    raw.decode('utf-8', errors='replace'))
+                        # If parsed is bytes, decode; otherwise, convert to string
+                        if isinstance(raw, bytes):
+                            self.nmea_queue.append(
+                                raw.decode('utf-8', errors='replace'))
 
                 # Send any pending RTCM messages
-                with self.rtcm_queue_lock:
-                    while self.rtcm_queue:
-                        rtcm = self.rtcm_queue.popleft()
-                        self.ublox_gnss.send_rtcm(rtcm)
-                        logger.debug(f"RTCM message sent: {rtcm}")
+                while self.rtcm_queue:
+                    rtcm = self.rtcm_queue.popleft()
+                    self.ublox_gnss.send_rtcm(rtcm)
+                    logger.debug(f"RTCM message sent: {rtcm}")
 
                 # Wait for the next poll interval, but allow prompt shutdown
                 if self.stop_event.wait(self.poll_interval):

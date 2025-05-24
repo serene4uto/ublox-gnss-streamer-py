@@ -51,11 +51,6 @@ class UbloxGnss:
         self.stream = None
         self.connected = DISCONNECTED
         
-        # internal buffers
-        # self.nmea_gga_queue = deque(maxlen=10)
-        # self.nav_pvt_queue = deque(maxlen=10)
-        # self.nav_cov_queue = deque(maxlen=10)
-        
     def connect(self):
         self.stream = Serial(self.port, self.baudrate, timeout=self.timeout)
         self.ubr = UBXReader(self.stream, protfilter = NMEA_PROTOCOL | RTCM3_PROTOCOL | UBX_PROTOCOL)
