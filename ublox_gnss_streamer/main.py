@@ -61,9 +61,9 @@ def main(argv=None):
     logger.debug(f"Options: {args}")
     
     stop_event = Event()
-    rtcm_queue = ThreadSafeDeque(maxlen=10)
-    nmea_queue = ThreadSafeDeque(maxlen=10)
-    gnss_json_queue = ThreadSafeDeque(maxlen=10)
+    rtcm_queue = ThreadSafeDeque(maxlen=100)
+    nmea_queue = ThreadSafeDeque(maxlen=100)
+    gnss_json_queue = ThreadSafeDeque(maxlen=100)
     
     try:
         ublox_gnss_worker = UbloxGnssWorker(
@@ -73,9 +73,9 @@ def main(argv=None):
                 timeout=args.timeout,
                 enableubx=True,
                 enablenmea=True,
-                measrate=1000,
+                measrate=100,
                 navrate=1,
-                navpriorate=1,
+                navpriorate=30,
             ),
             stop_event=stop_event,
             nmea_queue=nmea_queue,

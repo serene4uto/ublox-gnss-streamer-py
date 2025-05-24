@@ -1,6 +1,8 @@
 import threading
 from threading import Event
 import socket
+import json
+import time
 
 from .tcp_publisher import TcpPublisher
 from ublox_gnss_streamer.utils.logger import logger
@@ -44,15 +46,18 @@ class TcpPublisherWorker:
     
     def _broadcast_data_loop(self):
         while not self.stop_event.is_set():
-            try:
-                data = self.gnss_queue.popleft()  # thread-safe pop
-            except IndexError:
-                # Buffer is empty, wait a bit
-                threading.Event().wait(0.001)
-                continue
-            if data is not None:
-                with self.publisher_lock:
-                    self.publisher.send_to_all(data)
+            if self.gnss_queue is not None:
+                if len(self.gnss_queue) > 0:
+                    data = self.gnss_queue.popleft()  # thread-safe pop
+                    with self.publisher_lock:
+                        self.publisher.send_to_all(
+                            data=json.dumps(data).encode('utf-8') + b'\n'
+                        )
+                else:
+                    time.sleep(0.001)  # Yield CPU when queue is empty
+            else:
+                time.sleep(0.01)  # No queue configured, sleep longer
+                    
     
     def stop(self):
         self.stop_event.set()

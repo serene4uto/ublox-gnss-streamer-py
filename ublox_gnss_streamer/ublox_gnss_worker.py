@@ -1,6 +1,7 @@
 from threading import Event, Thread
 from datetime import datetime
 from zoneinfo import ZoneInfo
+import time
 
 from ublox_gnss_streamer.ublox_gnss import UbloxGnss
 from ublox_gnss_streamer.utils.logger import logger
@@ -16,6 +17,7 @@ class UbloxGnssWorker:
         rtcm_queue: ThreadSafeDeque = None,
         gnss_queue: ThreadSafeDeque = None,
         poll_interval: float = 1.0,
+        frame_rate_interval: float = 1.0,  # New: how often to report frame rate
     ):
         self.ublox_gnss = gnss
         
@@ -25,9 +27,13 @@ class UbloxGnssWorker:
         self.gnss_queue = gnss_queue
 
         self.poll_interval = poll_interval
+        self.frame_rate_interval = frame_rate_interval  # New
         self._thread = None
 
     def _worker_loop(self):
+        nav_pvt_count = 0
+        last_rate_time = time.time()
+
         try:
             while not self.stop_event.is_set():
                 raw, parsed = self.ublox_gnss.poll()
@@ -44,13 +50,14 @@ class UbloxGnssWorker:
                                 timestamp=datetime.now(ZoneInfo('Asia/Seoul')).strftime('%Y-%m-%d %H:%M:%S.%f')[:-3],
                                 lat=parsed.lat,
                                 lon=parsed.lon,
-                                h_msl=parsed.hMSL/ 1000.0,  # Convert to meters
+                                h_msl=parsed.hMSL / 1000.0,  # Convert to meters
                                 fix_type=parsed.fixType,
                                 carr_soln=parsed.carrSoln,
                                 gnss_fix_ok=parsed.gnssFixOk
                             ).json()
                             logger.debug(f"GNSS JSON Data: {gnss_json}")
                             self.gnss_queue.append(gnss_json)
+                            nav_pvt_count += 1  # Increment NAV-PVT frame count
                             
                     if parsed.identity == "GNGGA":
                         logger.debug(f"Parsed GNGGA: {parsed}")
@@ -58,6 +65,14 @@ class UbloxGnssWorker:
                         if isinstance(raw, bytes):
                             self.nmea_queue.append(
                                 raw.decode('utf-8', errors='replace'))
+
+                # Frame rate reporting
+                now = time.time()
+                if now - last_rate_time >= self.frame_rate_interval:
+                    frame_rate = nav_pvt_count / (now - last_rate_time)
+                    logger.info(f"NAV-PVT frame rate: {frame_rate:.2f} Hz")
+                    nav_pvt_count = 0
+                    last_rate_time = now
 
                 # Send any pending RTCM messages
                 while self.rtcm_queue:
