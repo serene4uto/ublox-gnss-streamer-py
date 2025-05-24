@@ -49,7 +49,7 @@ class NTRIPClientWorker:
         self.nmea_queue = nmea_queue
         self.rtcm_queue = rtcm_queue
         
-    def _worker(self):
+    def _worker_loop(self):
 
         while not self.stop_event.is_set():
             if self.stop_event.wait(self.rtcm_request_rate):
@@ -77,7 +77,7 @@ class NTRIPClientWorker:
             logger.error('Unable to connect to NTRIP server')
             return False
         
-        self._thread = Thread(target=self._worker, daemon=True)
+        self._thread = Thread(target=self._worker_loop, daemon=True)
         self._thread.start()
         
         return True

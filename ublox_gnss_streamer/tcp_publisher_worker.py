@@ -14,6 +14,7 @@ class TcpPublisherWorker:
         publisher: TcpPublisher, 
         stop_event: Event,
         gnss_queue: ThreadSafeDeque = None,
+        broadcast_interval: float = 0.01,  # Default broadcast interval
     ):
         self.publisher = publisher
         self.gnss_queue = gnss_queue
@@ -21,6 +22,7 @@ class TcpPublisherWorker:
         self.publisher_lock = threading.Lock()
         self.accept_thread = None
         self.broadcast_thread = None
+        self.broadcast_interval = broadcast_interval  # Interval for broadcasting data
     
     def run(self):
         self.publisher.start_server()
@@ -46,17 +48,15 @@ class TcpPublisherWorker:
     
     def _broadcast_data_loop(self):
         while not self.stop_event.is_set():
-            if self.gnss_queue is not None:
-                if len(self.gnss_queue) > 0:
-                    data = self.gnss_queue.popleft()  # thread-safe pop
-                    with self.publisher_lock:
-                        self.publisher.send_to_all(
-                            data=json.dumps(data).encode('utf-8') + b'\n'
-                        )
-                else:
-                    time.sleep(0.001)  # Yield CPU when queue is empty
-            else:
-                time.sleep(0.01)  # No queue configured, sleep longer
+            if self.stop_event.wait(self.broadcast_interval):
+                break
+            
+            if self.gnss_queue is not None and len(self.gnss_queue) > 0:
+                data = self.gnss_queue.popleft()
+                with self.publisher_lock:
+                    self.publisher.send_to_all(
+                        data=json.dumps(data).encode('utf-8') + b'\n'
+                    )
                     
     
     def stop(self):

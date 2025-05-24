@@ -110,6 +110,7 @@ def main(argv=None):
             ),
             stop_event=stop_event,
             gnss_queue=gnss_json_queue,
+            broadcast_interval=0.001  # 1000 Hz broadcast rate
         )
         
         while not ublox_gnss_worker.run():
