@@ -9,6 +9,8 @@ from ublox_gnss_streamer.ublox_gnss import UbloxGnss
 from ublox_gnss_streamer.ublox_gnss_worker import UbloxGnssWorker
 from ublox_gnss_streamer.ntrip_client import NTRIPClient
 from ublox_gnss_streamer.ntrip_client_worker import NTRIPClientWorker
+from ublox_gnss_streamer.tcp_publisher import TcpPublisher
+from ublox_gnss_streamer.tcp_publisher_worker import TcpPublisherWorker
 
 from ublox_gnss_streamer.utils.logger import logger, ColoredFormatter, ColoredLogger
 from ublox_gnss_streamer.utils.threadsafe_deque import ThreadSafeDeque
@@ -29,6 +31,14 @@ def parse_args(argv=None):
         "-ll", "--logger-level", default="info", choices=["debug", "info", "warning", "fatal", "error"], 
         help="Set the logger level"
     )
+    
+    parser.add_argument(
+        "--tcp-host", type=str, default="0.0.0.0", help="TCP host to publish data to"
+    )
+    parser.add_argument(
+        "--tcp-port", type=int, default=5000, help="TCP port to publish data to"
+    )
+    
     
     return parser.parse_args(argv)
 
@@ -53,6 +63,7 @@ def main(argv=None):
     stop_event = Event()
     rtcm_queue = ThreadSafeDeque(maxlen=10)
     nmea_queue = ThreadSafeDeque(maxlen=10)
+    gnss_json_queue = ThreadSafeDeque(maxlen=10)
     
     try:
         ublox_gnss_worker = UbloxGnssWorker(
@@ -69,6 +80,7 @@ def main(argv=None):
             stop_event=stop_event,
             nmea_queue=nmea_queue,
             rtcm_queue=rtcm_queue,
+            gnss_queue=gnss_json_queue,
             poll_interval=0.01
         )
         
@@ -91,11 +103,25 @@ def main(argv=None):
             rtcm_queue=rtcm_queue,
         )
         
+        tcp_publisher_worker = TcpPublisherWorker(
+            publisher=TcpPublisher(
+                host=args.tcp_host,
+                port=args.tcp_port,
+            ),
+            stop_event=stop_event,
+            gnss_queue=gnss_json_queue,
+        )
+        
         while not ublox_gnss_worker.run():
             time.sleep(1)
         
         while not ntrip_client_worker.run():
             time.sleep(1)
+            
+        while not tcp_publisher_worker.run():
+            time.sleep(1)
+            
+        logger.info("All workers started successfully.")
         
         # main loop
         while not stop_event.is_set():

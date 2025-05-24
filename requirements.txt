@@ -1,5 +1,5 @@
 termcolor
-
+pydantic
 pyserial
 pyrtcm==1.0.14
 pyubx2==1.2.35
