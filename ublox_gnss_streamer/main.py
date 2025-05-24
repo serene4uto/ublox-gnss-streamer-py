@@ -1,10 +1,12 @@
 import argparse
 import sys
 import logging
-from threading import Event
+from threading import Event, Lock
 import time
+from collections import deque
 
 from ublox_gnss_streamer.ublox_gnss import UbloxGnss
+from ublox_gnss_streamer.ntrip_client_worker import NTRIPClientWorker
 from ublox_gnss_streamer.utils.logger import logger, ColoredFormatter, ColoredLogger
 
 def parse_args(argv=None):
@@ -45,9 +47,13 @@ def main(argv=None):
     logger.debug(f"Options: {args}")
     
     stop_event = Event()
+    rtcm_queue = deque(maxlen=10)
+    rtcm_queue_lock = Lock()
+    nmea_queue = deque(maxlen=10)
+    nmea_queue_lock = Lock()
     
     try:
-        with UbloxGnss(
+        ublox_gnss_task = UbloxGnss(
             args.port,
             int(args.baudrate),
             float(args.timeout),
@@ -59,11 +65,35 @@ def main(argv=None):
             verbose=True,
             measrate=30,
             navrate=1,
-            navpriorate=30,
-        ) as gna:
-            gna.run()
-            while not stop_event.is_set():
-                time.sleep(1)
+            navpriorate=30
+        )
+        ntrip_client_worker = NTRIPClientWorker(
+            stop_event=stop_event,
+            host="ntrip.hi-rtk.io",
+            port=2101,
+            mountpoint="SNS_AUTO",
+            ntrip_version='NTRIP/2.0',
+            username="sns",
+            password="1234",
+            reconnect_attempt_max=5,
+            reconnect_attempt_wait_seconds=5,
+            rtcm_timeout_seconds=5,
+            nmea_max_length=250,
+            nmea_min_length=0,
+            ntrip_server_hz=1,
+            nmea_rxqueue=nmea_queue,
+            nmea_rxqueue_lock=nmea_queue_lock,
+            rtcm_txqueue=rtcm_queue,
+            rtcm_txqueue_lock=rtcm_queue_lock,
+        )
+        
+        ublox_gnss_task.run()
+        while not ntrip_client_worker.run():
+            time.sleep(1)
+        
+        while not stop_event.is_set():
+            time.sleep(1)
+            
     except KeyboardInterrupt:
         stop_event.set()
             
