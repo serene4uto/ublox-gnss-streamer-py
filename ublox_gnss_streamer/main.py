@@ -11,6 +11,8 @@ from ublox_gnss_streamer.ntrip_client import NTRIPClient
 from ublox_gnss_streamer.ntrip_client_worker import NTRIPClientWorker
 from ublox_gnss_streamer.tcp_publisher import TcpPublisher
 from ublox_gnss_streamer.tcp_publisher_worker import TcpPublisherWorker
+from ublox_gnss_streamer.gnss_extrapolator import GnssExtrapolator
+from ublox_gnss_streamer.gnss_extrapolator_worker import GnssExtrapolatorWorker
 
 from ublox_gnss_streamer.utils.logger import logger, ColoredFormatter, ColoredLogger
 from ublox_gnss_streamer.utils.threadsafe_deque import ThreadSafeDeque
@@ -63,7 +65,8 @@ def main(argv=None):
     stop_event = Event()
     rtcm_queue = ThreadSafeDeque(maxlen=100)
     nmea_queue = ThreadSafeDeque(maxlen=100)
-    gnss_json_queue = ThreadSafeDeque(maxlen=100)
+    gnss_raw_queue = ThreadSafeDeque(maxlen=100)
+    gnss_extra_queue = ThreadSafeDeque(maxlen=100)
     
     try:
         ublox_gnss_worker = UbloxGnssWorker(
@@ -80,7 +83,7 @@ def main(argv=None):
             stop_event=stop_event,
             nmea_queue=nmea_queue,
             rtcm_queue=rtcm_queue,
-            gnss_queue=gnss_json_queue,
+            gnss_queue=gnss_raw_queue,
             poll_interval=0.01
         )
         
@@ -109,8 +112,17 @@ def main(argv=None):
                 port=args.tcp_port,
             ),
             stop_event=stop_event,
-            gnss_queue=gnss_json_queue,
+            gnss_queue=gnss_extra_queue,
             broadcast_interval=0.001  # 1000 Hz broadcast rate
+        )
+        
+        gnss_extrapolator_worker = GnssExtrapolatorWorker(
+            gnss_extrapolator=GnssExtrapolator(
+                max_buffer=2,
+            ),
+            stop_event=stop_event,
+            gnss_raw_queue=gnss_raw_queue,
+            gnss_extra_queue=gnss_extra_queue
         )
         
         while not ublox_gnss_worker.run():
@@ -120,6 +132,9 @@ def main(argv=None):
             time.sleep(1)
             
         while not tcp_publisher_worker.run():
+            time.sleep(1)
+            
+        while not gnss_extrapolator_worker.run():
             time.sleep(1)
             
         logger.info("All workers started successfully.")

@@ -40,23 +40,38 @@ class UbloxGnssWorker:
                 if parsed and hasattr(parsed, "identity"):
                     if parsed.identity == "NAV-PVT":
                         logger.debug(f"Parsed NAV-PVT: {parsed}")
-                        if hasattr(parsed, "lat") \
-                            and hasattr(parsed, "lon") \
-                            and hasattr(parsed, "hMSL") \
-                            and hasattr(parsed, "carrSoln") \
-                            and hasattr(parsed, "fixType") \
+                        if hasattr(parsed, "lat") and hasattr(parsed, "lon") \
+                            and hasattr(parsed, "hMSL") and hasattr(parsed, "height") \
+                            and hasattr(parsed, "carrSoln") and hasattr(parsed, "fixType") \
                             and hasattr(parsed, "gnssFixOk"):
-                            gnss_json = GnssDataSchema(
-                                timestamp=datetime.now(ZoneInfo('Asia/Seoul')).strftime('%Y-%m-%d %H:%M:%S.%f')[:-3],
-                                lat=parsed.lat,
-                                lon=parsed.lon,
-                                h_msl=parsed.hMSL / 1000.0,  # Convert to meters
-                                fix_type=parsed.fixType,
-                                carr_soln=parsed.carrSoln,
-                                gnss_fix_ok=parsed.gnssFixOk
-                            ).json()
-                            logger.debug(f"GNSS JSON Data: {gnss_json}")
-                            self.gnss_queue.append(gnss_json)
+                            # gnss_json = GnssDataSchema(
+                            #     timestamp=datetime.now(ZoneInfo('Asia/Seoul')).strftime('%Y-%m-%d %H:%M:%S.%f')[:-3],
+                            #     lat=parsed.lat,
+                            #     lon=parsed.lon,
+                            #     h_msl=parsed.hMSL / 1000.0,  # Convert to meters
+                            #     fix_type=parsed.fixType,
+                            #     carr_soln=parsed.carrSoln,
+                            #     gnss_fix_ok=parsed.gnssFixOk
+                            # ).json()
+                            # logger.debug(f"GNSS JSON Data: {gnss_json}")
+                            # self.gnss_queue.append(gnss_json)
+                            gnss_data = {
+                                "timestamp": time.time(),  # Use system time; or parsed.iTOW if you want GNSS time
+                                "lat": parsed.lat * 1e-7,  # 1e-7 deg to deg
+                                "lon": parsed.lon * 1e-7,
+                                # Optionally, keep both altitudes:
+                                "hMSL": parsed.hMSL / 1000.0,
+                                "height": parsed.height / 1000.0,  # Ellipsoid height
+                                "carrSoln": parsed.carrSoln,
+                                "fixType": parsed.fixType,
+                                "gnssFixOk": parsed.gnssFixOk,
+                                # Velocity: convert from NED (cm/s) to ENU (m/s)
+                                "velE": parsed.velE / 100.0,        # East (cm/s to m/s)
+                                "velN": parsed.velN / 100.0,        # North (cm/s to m/s)
+                                "velD": parsed.velD / 100.0,       # Up = -Down (cm/s to m/s)
+                                "gSpeed": parsed.gSpeed / 100.0,     # Ground speed (cm/s to m/s), optional
+                            }
+                            self.gnss_queue.append(gnss_data)
                             nav_pvt_count += 1  # Increment NAV-PVT frame count
                             
                     if parsed.identity == "GNGGA":
