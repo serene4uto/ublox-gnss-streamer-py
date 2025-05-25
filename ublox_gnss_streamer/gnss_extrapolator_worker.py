@@ -13,7 +13,7 @@ class GnssExtrapolatorWorker:
         stop_event: Event,
         gnss_raw_queue: ThreadSafeDeque,
         gnss_extra_queue: ThreadSafeDeque,
-        extrapolate_interval: float = 0.001  # Default extrapolation interval
+        extrapolate_interval: float = 0.0095  # Default extrapolation interval
     ):
         self.gnss_extrapolator = gnss_extrapolator
         self.stop_event = stop_event
