@@ -122,7 +122,8 @@ def main(argv=None):
             ),
             stop_event=stop_event,
             gnss_raw_queue=gnss_raw_queue,
-            gnss_extra_queue=gnss_extra_queue
+            gnss_extra_queue=gnss_extra_queue,
+            extrapolate_interval = 0.0095  # Default extrapolation interval (100 Hz)
         )
         
         while not ublox_gnss_worker.run():
