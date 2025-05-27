@@ -1,0 +1,15 @@
+serial_port: /dev/ttyUSB0
+serial_baudrate: 115200
+serial_timeout: 1.0
+serial_interface: UART1
+
+ntrip_host: ntrip.hi-rtk.io
+ntrip_port: 2101
+ntrip_mountpoint: SNS_AUTO
+ntrip_username: sns
+ntrip_password: 1234
+
+tcp_host: 0.0.0.0
+tcp_port: 5000
+
+logger_level: info

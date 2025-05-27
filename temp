@@ -1,0 +1,33 @@
+
+
+python -m ublox_gnss_streamer.main \
+  -p /dev/ttyACM0 \
+  -b 38400 \
+  -t 1.0 \
+  -i UART1 \
+  -s ntrip.hi-rtk.io \
+  -n 2101 \
+  -m SNS_AUTO \
+  -u sns \
+  -w 1234 \
+  -a 0.0.0.0 \
+  -q 5000 \
+  -l info
+
+
+python -m ublox_gnss_streamer.main \
+  --serial-port /dev/ttyUSB0 \
+  --serial-baudrate 115200 \
+  --serial-timeout 1.0 \
+  --serial-interface UART1 \
+  --ntrip-host ntrip.hi-rtk.io \
+  --ntrip-port 2101 \
+  --ntrip-mountpoint SNS_AUTO \
+  --ntrip-username sns \
+  --ntrip-password 1234 \
+  --tcp-host 0.0.0.0 \
+  --tcp-port 5000 \
+  --logger-level info
+
+python -m ublox_gnss_streamer.main \
+  --yaml-config /workspaces/ublox-gnss-streamer-py/ublox_gnss_streamer/config.yaml

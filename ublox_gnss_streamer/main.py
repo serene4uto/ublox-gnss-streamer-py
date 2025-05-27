@@ -1,9 +1,8 @@
 import argparse
 import sys
 import logging
-from threading import Event, Lock
+from threading import Event
 import time
-from collections import deque
 import yaml
 
 from ublox_gnss_streamer.ublox_gnss import UbloxGnss
@@ -26,64 +25,77 @@ def parse_args(argv=None):
     # YAML config file
     parser.add_argument(
         "-y", "--yaml-config", type=str,
-        help="Path to YAML configuration file"
+        help="Path to YAML configuration file",
+        default=argparse.SUPPRESS
     )
     
     # Ublox GNSS parameters
     parser.add_argument(
-        "-p", "--serial-port", type=str, default="/dev/ttyACM0",
-        help="Serial port to connect to the GNSS device"
+        "-p", "--serial-port", type=str,
+        help="Serial port to connect to the GNSS device",
+        default=argparse.SUPPRESS
     )
     parser.add_argument(
-        "-b", "--serial-baudrate", type=int, default=38400,
-        help="Baudrate for the serial connection"
+        "-b", "--serial-baudrate", type=int,
+        help="Baudrate for the serial connection",
+        default=argparse.SUPPRESS
     )
     parser.add_argument(
-        "-t", "--serial-timeout", type=float, default=1.0,
-        help="Timeout in secs for the serial connection"
+        "-t", "--serial-timeout", type=float,
+        help="Timeout in secs for the serial connection",
+        default=argparse.SUPPRESS
     )
     parser.add_argument(
-        "-i", "--serial-interface", type=str, default="UART1",
-        help="Serial interface used on the module (e.g., UART1, USB, etc.)"
+        "-i", "--serial-interface", type=str,
+        help="Serial interface used on the module (e.g., UART1, USB, etc.)",
+        default=argparse.SUPPRESS
     )
 
     # NTRIP client parameters
     parser.add_argument(
-        "-s", "--ntrip-host", type=str, default="ntrip.hi-rtk.io",
-        help="NTRIP server host"
+        "-s", "--ntrip-host", type=str,
+        help="NTRIP server host",
+        default=argparse.SUPPRESS
     )
     parser.add_argument(
-        "-n", "--ntrip-port", type=int, default=2101,
-        help="NTRIP server port"
+        "-n", "--ntrip-port", type=int,
+        help="NTRIP server port",
+        default=argparse.SUPPRESS
     )
     parser.add_argument(
-        "-m", "--ntrip-mountpoint", type=str, default="SNS_AUTO",
-        help="NTRIP mountpoint"
+        "-m", "--ntrip-mountpoint", type=str,
+        help="NTRIP mountpoint",
+        default=argparse.SUPPRESS
     )
     parser.add_argument(
-        "-u", "--ntrip-username", type=str, default="sns",
-        help="NTRIP username"
+        "-u", "--ntrip-username", type=str,
+        help="NTRIP username",
+        default=argparse.SUPPRESS
     )
     parser.add_argument(
-        "-w", "--ntrip-password", type=str, default="1234",
-        help="NTRIP password"
+        "-w", "--ntrip-password", type=str,
+        help="NTRIP password",
+        default=argparse.SUPPRESS
     )
 
     # TCP publisher parameters
     parser.add_argument(
-        "-a", "--tcp-host", type=str, default="0.0.0.0",
-        help="TCP host to publish data to"
+        "-a", "--tcp-host", type=str,
+        help="TCP host to publish data to",
+        default=argparse.SUPPRESS
     )
     parser.add_argument(
-        "-q", "--tcp-port", type=int, default=5000,
-        help="TCP port to publish data to"
+        "-q", "--tcp-port", type=int,
+        help="TCP port to publish data to",
+        default=argparse.SUPPRESS
     )
 
     # others
     parser.add_argument(
-        "-l", "--logger-level", default="info",
+        "-l", "--logger-level",
         choices=["debug", "info", "warning", "fatal", "error"],
-        help="Set the logger level"
+        help="Set the logger level",
+        default=argparse.SUPPRESS
     )
 
     return parser.parse_args(argv)
@@ -95,26 +107,19 @@ def main(argv=None):
     config_dict = {}
 
     # Load YAML config if provided
-    if args.yaml_config:
+    if hasattr(args, 'yaml_config'):
         try:
             with open(args.yaml_config, 'r') as file:
                 yaml_config = yaml.safe_load(file)
                 if yaml_config:
                     config_dict.update(yaml_config)
         except Exception as e:
-            logger.error(f"Failed to load YAML config: {e}")
-            sys.exit(1)
+            raise RuntimeError(f"Failed to load YAML config file {args.yaml_config}: {e}") from e
 
-    # Override YAML config with CLI arguments (if set)
-    for key in vars(args):
-        cli_value = getattr(args, key)
-        if cli_value is not None:
-            config_dict[key] = cli_value
+    # Override YAML config with CLI arguments (if set by user, not default)
+    for key, value in vars(args).items():
+        config_dict[key] = value
             
-    # Log the final configuration
-    for key, value in config_dict.items():
-        logger.debug(f"Config {key}: {value}")
-    
     # Set up logging
     logger.setLevel(getattr(logging, config_dict.get('logger_level', 'info').upper()))
     if not logger.hasHandlers():
@@ -126,8 +131,10 @@ def main(argv=None):
         logger.addHandler(handler)
         
     logger.info("Starting ublox_gnss_streamer")
-    # log all options
-    logger.debug(f"Options: {args}")
+    
+    # Log the final configuration
+    for key, value in config_dict.items():
+        logger.info(f"Config {key}: {value}")
     
     stop_event = Event()
     rtcm_queue = ThreadSafeDeque(maxlen=100)
@@ -138,15 +145,15 @@ def main(argv=None):
     try:
         ublox_gnss_worker = UbloxGnssWorker(
             gnss=UbloxGnss(
-                port=config_dict.get('serial_port', args.serial_port),
-                baudrate=config_dict.get('serial_baudrate', args.serial_baudrate),
-                timeout=config_dict.get('serial_timeout', args.serial_timeout),
+                port=config_dict.get('serial_port'),
+                baudrate=config_dict.get('serial_baudrate'),
+                timeout=config_dict.get('serial_timeout'),
                 enableubx=True,
                 enablenmea=True,
                 measrate=100,
                 navrate=1,
                 navpriorate=30,
-                port_type=config_dict.get('serial_interface', args.serial_interface),
+                port_type=config_dict.get('serial_interface'),
             ),
             stop_event=stop_event,
             nmea_queue=nmea_queue,
@@ -154,16 +161,15 @@ def main(argv=None):
             gnss_queue=gnss_raw_queue,
             poll_interval=0.01
         )
-        
 
         ntrip_client_worker = NTRIPClientWorker(
             client= NTRIPClient(
-                host=config_dict.get('ntrip_host', args.ntrip_host),
-                port=config_dict.get('ntrip_port', args.ntrip_port),
-                mountpoint=config_dict.get('ntrip_mountpoint', args.ntrip_mountpoint),
+                host=config_dict.get('ntrip_host'),
+                port=config_dict.get('ntrip_port'),
+                mountpoint=config_dict.get('ntrip_mountpoint'),
                 ntrip_version='NTRIP/2.0',
-                username=config_dict.get('ntrip_username', args.ntrip_username),
-                password=config_dict.get('ntrip_password', args.ntrip_password),
+                username=config_dict.get('ntrip_username'),
+                password=config_dict.get('ntrip_password'),
                 reconnect_attempt_max=5,
                 reconnect_attempt_wait_seconds=5,
                 rtcm_timeout_seconds=5,
@@ -178,8 +184,8 @@ def main(argv=None):
         
         tcp_publisher_worker = TcpPublisherWorker(
             publisher=TcpPublisher(
-                host=config_dict.get('tcp_host', args.tcp_host),
-                port=config_dict.get('tcp_port', args.tcp_port),
+                host=config_dict.get('tcp_host'),
+                port=config_dict.get('tcp_port'),
             ),
             stop_event=stop_event,
             gnss_queue=gnss_extra_queue,
