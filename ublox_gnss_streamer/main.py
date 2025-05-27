@@ -23,7 +23,7 @@ def parse_args(argv=None):
         "-p", "--port", type=str, default="/dev/ttyACM0", help="Serial port to connect to the GNSS device"
     )
     parser.add_argument(
-        "-b", "--baudrate", type=int, default=115200, help="Baudrate for the serial connection"
+        "-b", "--baudrate", type=int, default=38400, help="Baudrate for the serial connection"
     )
     parser.add_argument(
         "-t", "--timeout", required=False, help="Timeout in secs", default=3, type=float
@@ -79,6 +79,7 @@ def main(argv=None):
                 measrate=100,
                 navrate=1,
                 navpriorate=30,
+                port_type="UART1"
             ),
             stop_event=stop_event,
             nmea_queue=nmea_queue,
