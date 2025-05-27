@@ -8,40 +8,13 @@ from ublox_gnss_streamer.utils.threadsafe_deque import ThreadSafeDeque
 class NTRIPClientWorker:
     def __init__(
         self, 
-        host, 
-        port, 
-        mountpoint, 
-        ntrip_version, 
-        username, 
-        password,
-        reconnect_attempt_max=5,
-        reconnect_attempt_wait_seconds=5,
-        rtcm_timeout_seconds=5,
-        nmea_max_length=82,
-        nmea_min_length=0,
+        client: NTRIPClient,
         ntrip_server_hz=1,
         stop_event: Event = None,
         nmea_queue: ThreadSafeDeque = None,
         rtcm_queue: ThreadSafeDeque = None,
     ):
-        self._client = NTRIPClient(
-            host=host,
-            port=port,
-            mountpoint=mountpoint,
-            ntrip_version=ntrip_version,
-            username=username,
-            password=password,
-            logdebug=logger.debug,
-            loginfo=logger.info,
-            logwarn=logger.warning,
-            logerr=logger.error,
-        )
-        self._client.reconnect_attempt_max = reconnect_attempt_max
-        self._client.reconnect_attempt_wait_seconds = reconnect_attempt_wait_seconds
-        self._client.rtcm_timeout_seconds = rtcm_timeout_seconds
-        self._client.nmea_parser.nmea_max_length = nmea_max_length
-        self._client.nmea_parser.nmea_min_length = nmea_min_length
-        
+        self._client = client
         self.rtcm_request_rate = 1.0 / ntrip_server_hz
         self.stop_event = stop_event
         self._thread = None

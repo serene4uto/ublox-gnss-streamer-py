@@ -11,6 +11,8 @@ import threading
 from .nmea_parser import NMEAParser
 from .rtcm_parser import RTCMParser
 
+from ublox_gnss_streamer.utils.logger import logger
+
 _CHUNK_SIZE = 1024
 _SOURCETABLE_RESPONSES = [
   'SOURCETABLE 200 OK'
@@ -31,9 +33,27 @@ class NTRIPClient:
   DEFAULT_RECONNECT_ATEMPT_WAIT_SECONDS = 5
   DEFAULT_RTCM_TIMEOUT_SECONDS = 4
 
-  def __init__(self, host, port, mountpoint, ntrip_version, username, password, 
-               logerr=logging.error, logwarn=logging.warning, loginfo=logging.info, logdebug=logging.debug):
-    # Bit of a strange pattern here, but save the log functions so we can be agnostic of ROS
+  def __init__(
+    self, 
+    host, 
+    port, 
+    mountpoint, 
+    ntrip_version,
+    username, 
+    password, 
+    reconnect_attempt_max=DEFAULT_RECONNECT_ATTEMPT_MAX,
+    reconnect_attempt_wait_seconds=DEFAULT_RECONNECT_ATEMPT_WAIT_SECONDS,
+    rtcm_timeout_seconds=DEFAULT_RTCM_TIMEOUT_SECONDS,
+    nmea_max_length=82,
+    nmea_min_length=0,
+    
+    
+    logerr=logger.error,
+    logwarn=logger.warning,
+    loginfo=logger.info,
+    logdebug=logger.debug
+  ):
+    
     self._logerr = logerr
     self._logwarn = logwarn
     self._loginfo = loginfo
@@ -91,6 +111,9 @@ class NTRIPClient:
     self.reconnect_attempt_max = self.DEFAULT_RECONNECT_ATTEMPT_MAX
     self.reconnect_attempt_wait_seconds = self.DEFAULT_RECONNECT_ATEMPT_WAIT_SECONDS
     self.rtcm_timeout_seconds = self.DEFAULT_RTCM_TIMEOUT_SECONDS
+    
+    self.nmea_parser.nmea_max_length = nmea_max_length
+    self.nmea_parser.nmea_min_length = nmea_min_length
 
   def connect(self):
     # Create a socket object that we will use to connect to the server
