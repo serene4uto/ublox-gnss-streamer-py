@@ -3,78 +3,103 @@ name: Build and Release
 on:
   push:
     tags:
-      - 'v*'
+      - 'v*' # Trigger on tags like v1.2.3
 
-  workflow_dispatch:
+  workflow_dispatch: # Allows manual triggering
 
 jobs:
   build:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        target: [x86_64, aarch64]
+        target: [x86_64, aarch64] # Define the architectures to build for
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0
+          fetch-depth: 0 # Fetches all history for all tags and branches
 
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
-          python-version: '3.x'
+          python-version: '3.x' # Specify your desired Python version
 
-      - name: Install Nuitka
+      - name: Install Nuitka and dependencies
         run: |
           python -m pip install --upgrade pip
-          python -m pip install nuitka
+          python -m pip install nuitka wheel # Nuitka and any build dependencies
+          # If your requirements.txt is needed for Nuitka to find packages, install it here too
+          # Or ensure your build-bin.sh handles all necessary installations
 
       - name: Determine Version
         id: get_version
         run: |
-          VERSION="${GITHUB_REF##*/}"
-          echo "VERSION=$VERSION" >> $GITHUB_ENV
-          echo "::set-output name=version::$VERSION"
+          # Extracts the version from the Git tag (e.g., v1.2.3 -> 1.2.3)
+          # If your tag is just the version number (e.g., 1.2.3), use: VERSION="${GITHUB_REF_NAME}"
+          VERSION="${GITHUB_REF_NAME#v}" # Removes 'v' prefix if present
+          echo "VERSION=${VERSION}" >> $GITHUB_ENV
+          echo "::set-output name=version::${VERSION}"
 
-      - name: Build Binary
+      - name: Build Binary using build-bin.sh
         env:
-          VERSION: ${{ steps.get_version.outputs.version }}
+          # VERSION environment variable is already set by the previous step
+          TARGET_ARCH_NAME: ${{ matrix.target }} # For clarity in the script if needed
         run: |
-          chmod +x /scripts/build-bin.sh
-          bash /scripts/build-bin.sh ${{ matrix.target }} "${{ steps.get_version.outputs.version }}"
+          echo "Building for architecture: ${{ matrix.target }}"
+          chmod +x ./scripts/build-bin.sh # Ensure the script is executable
+          # Pass the target architecture and version to your build script
+          ./scripts/build-bin.sh "${{ matrix.target }}" "${{ steps.get_version.outputs.version }}"
 
       - name: Upload Artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v4 # Updated to v4
         with:
           name: binaries-${{ matrix.target }}
-          path: bin/
+          path: | # Path to the directory containing your built binaries and archives
+            ${{ github.workspace }}/bin/ublox_gnss_streamer_${{ matrix.target }}-${{ steps.get_version.outputs.version }}.tar.gz
+          if-no-files-found: error # Fail the workflow if the artifact is not found
 
   release:
-    needs: build
+    needs: build # This job depends on the successful completion of the 'build' job
     runs-on: ubuntu-latest
+    permissions:
+      contents: write # Required to create a release and upload assets
     steps:
-      - name: Checkout code
+      - name: Checkout code (optional, if release notes are generated from repo)
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
-      - name: Download Artifacts
-        uses: actions/download-artifact@v4
+      - name: Determine Version from Tag
+        id: get_version_for_release
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          echo "::set-output name=version::${VERSION}"
+
+      - name: Download AMD64 Artifact
+        uses: actions/download-artifact@v4 # Updated to v4
         with:
           name: binaries-x86_64
-          path: binaries-x86_64
-      - name: Download Artifacts arm
-        uses: actions/download-artifact@v4
+          path: downloaded-artifacts/x86_64
+
+      - name: Download ARM64 Artifact
+        uses: actions/download-artifact@v4 # Updated to v4
         with:
           name: binaries-aarch64
-          path: binaries-aarch64
+          path: downloaded-artifacts/aarch64
 
-      - name: Create Release
+      - name: Display structure of downloaded files
+        run: ls -R downloaded-artifacts
+
+      - name: Create GitHub Release
         uses: softprops/action-gh-release@v1
         with:
-          tag_name: ${{ github.ref }}
+          tag_name: ${{ github.ref_name }} # Use the full tag name like v1.2.3
+          # name: Release ${{ steps.get_version_for_release.outputs.version }} # Optional: custom release name
+          # body_path: CHANGELOG.md # Optional: path to a changelog file
+          # draft: false # Set to true to create a draft release
+          # prerelease: false # Set to true to mark as a pre-release
           files: |
-            binaries-x86_64/ublox_gnss_streamer_x86_64-${{ github.ref_name }}.tar.gz
-            binaries-aarch64/ublox_gnss_streamer_aarch64-${{ github.ref_name }}.tar.gz
+            downloaded-artifacts/x86_64/ublox_gnss_streamer_x86_64-${{ steps.get_version_for_release.outputs.version }}.tar.gz
+            downloaded-artifacts/aarch64/ublox_gnss_streamer_aarch64-${{ steps.get_version_for_release.outputs.version }}.tar.gz
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
