@@ -15,7 +15,6 @@ Key features include:
 
 This project is ideal for applications demanding real-time, high-precision GNSS data streaming and advanced processing capabilities.
 
-text
 ## Prerequisites
 
 Before getting started, ensure the system meets the following requirements based on the chosen usage method.
@@ -149,3 +148,60 @@ To view the full list of available command-line options, their descriptions, and
 *   Ensure that parameters such as the serial port, baudrate, NTRIP credentials, and TCP settings are correctly configured for the specific hardware setup and network environment.
 *   Command-line options generally override values set in a configuration file if both are provided.
 *   The application can typically be stopped by pressing `Ctrl+C` in the terminal where it is running.
+
+## Running from Source
+
+For users who prefer to run the application directly from the source code, the Ublox GNSS Streamer can be started using its command-line interface (CLI). This method is also suitable for development and testing.
+
+First, ensure the "For Running from Source / Development" prerequisites mentioned in the main [Prerequisites](#prerequisites) section are met. This typically involves:
+1.  Cloning the repository:
+    ```
+    git clone https://github.com/serene4uto/ublox-gnss-streamer-py.git
+    ```
+2.  Navigating into the project directory:
+    ```
+    cd ublox-gnss-streamer-py
+    ```
+3.  Installing project dependencies (it's recommended to do this within a Python virtual environment):
+    ```
+    # Example: if you have a requirements.txt
+    pip install -r requirements.txt
+    # Example: if your project uses pyproject.toml for build and dependencies
+    # pip install .
+    ```
+
+Once the setup is complete, from the root directory of the cloned repository, the Ublox GNSS Streamer can be launched using the following command structure:
+```
+python -m ublox_gnss_streamer.main [OPTIONS]
+```
+
+The available command-line `[OPTIONS]` are the same as those described in the "Run the Application" section for pre-compiled binaries (e.g., `--serial-port`, `--ntrip-host`, `--tcp-port`, etc.).
+
+## Building Binary from Source
+
+To build the binary executable from the source code, run the provided bash script from the root of the project:
+```
+bash scripts/build-bin.sh
+```
+
+After the build completes successfully, the binary file will be available in the `bin` directory within the project root.
+
+This method provides a quick and automated way to compile the project and generate the executable for deployment or testing.
+
+## Example Evaluation Client
+
+To evaluate the GNSS data streamed by `ublox-gnss-streamer-py`, an example client application is available:
+
+**[ublox_gnss_eval_client](https://github.com/serene4uto/ublox_gnss_eval_client)**
+
+This client application currently:
+*   Connects to the TCP stream provided by `ublox-gnss-streamer-py`.
+*   Evaluates the incoming GNSS message rate (Hz).
+*   Calculates the distance error by comparing received positions against a provided ground truth/reference point.
+*   Displays evaluation results (message rate, distance error) on the console.
+*   Logs the evaluation results to a file for later analysis.
+
+It serves as a practical example of how to build a client to consume, process, and evaluate the data from this streamer.
+
+Please refer to the `ublox_gnss_eval_client` repository for its specific setup and usage instructions.
+
