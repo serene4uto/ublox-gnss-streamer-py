@@ -1,0 +1,21 @@
+# config.yaml
+
+# TCP Server Connection Settings
+tcp:
+  host: "127.0.0.1"
+  port: 50012
+
+# Evaluation Parameters
+evaluation:
+  rate_hz: 1.0 # Processor thread reporting rate in Hz
+
+# Ground Truth Coordinates
+ground_truth:
+  latitude: 36.116588
+  longitude: 128.364695
+
+# Logging Configuration
+logging:
+  enable: true # Enable logging of report data lines
+  file_path: null # Path to log file. If null and enable is true, a default is generated.
+                  # Example: ".gnss_log/gnss_eval_from_config.log"

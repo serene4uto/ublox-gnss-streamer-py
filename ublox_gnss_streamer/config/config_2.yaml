@@ -1,5 +1,5 @@
 serial_port: /dev/ttyUSB0
-serial_baudrate: 115200
+serial_baudrate: 38400
 serial_timeout: 1.0
 serial_interface: UART1
 
