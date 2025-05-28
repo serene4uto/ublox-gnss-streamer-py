@@ -44,7 +44,7 @@ jobs:
           bash /scripts/build-bin.sh ${{ matrix.target }} "${{ steps.get_version.outputs.version }}"
 
       - name: Upload Artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: binaries-${{ matrix.target }}
           path: bin/
@@ -59,12 +59,12 @@ jobs:
           fetch-depth: 0
 
       - name: Download Artifacts
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: binaries-x86_64
           path: binaries-x86_64
       - name: Download Artifacts arm
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: binaries-aarch64
           path: binaries-aarch64
