@@ -16,60 +16,58 @@ jobs:
           - target: x86_64
             os: ubuntu-latest # Standard x86_64 runner
           - target: aarch64
-            os: ubuntu-latest-arm64 # Specify an ARM64 runner (e.g., GitHub's ARM64 runner)
-                                    # Note: The exact label for GitHub's ARM64 runners might change.
-                                    # Please verify the current label from GitHub's documentation if needed.
+            os: ubuntu-22.04-arm # Corrected label for GitHub-hosted ARM64 runner (Ubuntu 22.04)
+                                 # You can also use 'ubuntu-24.04-arm' if you prefer Ubuntu 24.04 [2]
     runs-on: ${{ matrix.os }} # Use the OS defined in the matrix strategy
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0
+          fetch-depth: 0 # Fetches all history for all tags and branches
 
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
-          python-version: '3.x'
+          python-version: '3.x' # Specify your desired Python version
 
       - name: Install Nuitka and dependencies
         run: |
           python -m pip install --upgrade pip
-          python -m pip install nuitka wheel
-          # If your requirements.txt is for the application itself (not just build tools),
-          # and Nuitka needs them during compilation (e.g., to find packages),
-          # consider installing them here:
-          # python -m pip install -r requirements.txt
-          # Alternatively, ensure your build-bin.sh handles all necessary installations
-          # within the target architecture's environment.
+          python -m pip install nuitka wheel # Nuitka and any build dependencies
+          # If your requirements.txt is needed for Nuitka to find packages,
+          # ensure your build-bin.sh handles all necessary installations within the target architecture's environment.
 
       - name: Determine Version
         id: get_version
         run: |
-          VERSION="${GITHUB_REF_NAME#v}"
-          echo "VERSION=${VERSION}" >> $GITHUB_ENV
-          echo "version=${VERSION}" >> $GITHUB_OUTPUT # Updated output method
+          # Extracts the version from the Git tag (e.g., v1.2.3 -> 1.2.3)
+          VERSION="${GITHUB_REF_NAME#v}" # Removes 'v' prefix if present
+          echo "VERSION=${VERSION}" >> $GITHUB_ENV # For use in subsequent env contexts in this job
+          echo "version=${VERSION}" >> $GITHUB_OUTPUT # For use via steps.get_version.outputs.version
 
       - name: Build Binary using build-bin.sh
         env:
-          TARGET_ARCH_NAME: ${{ matrix.target }}
+          # VERSION environment variable is already set by the previous step
+          TARGET_ARCH_NAME: ${{ matrix.target }} # For clarity in the script if needed
         run: |
           echo "Building for architecture: ${{ matrix.target }} on runner OS: ${{ matrix.os }}"
-          chmod +x ./scripts/build-bin.sh
+          chmod +x ./scripts/build-bin.sh # Ensure the script is executable
+          # Pass the target architecture and version to your build script
           ./scripts/build-bin.sh "${{ matrix.target }}" "${{ steps.get_version.outputs.version }}"
 
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
         with:
           name: binaries-${{ matrix.target }}
-          path: |
+          path: | # Path to the directory containing your built binaries and archives
             ${{ github.workspace }}/bin/ublox_gnss_streamer_${{ matrix.target }}-${{ steps.get_version.outputs.version }}.tar.gz
-          if-no-files-found: error
+          if-no-files-found: error # Fail the workflow if the artifact is not found
 
   release:
-    needs: build
+    needs: build # This job depends on the successful completion of the 'build' job
     runs-on: ubuntu-latest # Release job can run on standard x86_64
     permissions:
-      contents: write
+      contents: write # Required to create a release and upload assets
     steps:
       - name: Checkout code (optional, if release notes are generated from repo)
         uses: actions/checkout@v4
@@ -100,10 +98,13 @@ jobs:
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v1
         with:
-          tag_name: ${{ github.ref_name }}
+          tag_name: ${{ github.ref_name }} # Use the full tag name like v1.2.3
+          # name: Release ${{ steps.get_version_for_release.outputs.version }} # Optional: custom release name
+          # body_path: CHANGELOG.md # Optional: path to a changelog file
+          # draft: false # Set to true to create a draft release
+          # prerelease: false # Set to true to mark as a pre-release
           files: |
             downloaded-artifacts/x86_64/ublox_gnss_streamer_x86_64-${{ steps.get_version_for_release.outputs.version }}.tar.gz
             downloaded-artifacts/aarch64/ublox_gnss_streamer_aarch64-${{ steps.get_version_for_release.outputs.version }}.tar.gz
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
