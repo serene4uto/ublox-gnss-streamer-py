@@ -114,7 +114,7 @@ def evaluate_data(json_str, gt_latitude, gt_longitude):
         horizontal_error_2d = math.sqrt(northing_error**2 + easting_error**2) # This is often same as hpe from receiver if fix is good.
 
         processed_info = {
-            "timestamp": format_timestamp_to_kst(msg_time),
+            "timestamp": msg_time, #format_timestamp_to_kst(msg_time),
             "lat": lat,
             "lon": lon,
             "fix_type": str(fix_type),
