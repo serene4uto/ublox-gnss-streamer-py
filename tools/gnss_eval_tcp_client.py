@@ -121,7 +121,6 @@ def evaluate_data(json_str, gt_latitude, gt_longitude):
             "hpe": horizontal_error_2d, # Horizontal Position Error (HPE) in meters
             "northing_error": northing_error,
             "easting_error": easting_error,
-            # "horizontal_error_2d_calculated": horizontal_error_2d
         }
         return processed_info
 
@@ -218,7 +217,7 @@ def receiver_thread_func(
             try:
                 sock.shutdown(socket.SHUT_RDWR) # Gracefully close
             except OSError:
-                pass # Socket might already be closed
+                pass 
             sock.close()
         if not stop_event.is_set():
              stop_event.set() 
@@ -242,17 +241,15 @@ def processor_thread_func(
     if log_enable_flag and log_file_path:
         try:
             Path(log_file_path).parent.mkdir(parents=True, exist_ok=True)
-            # Open in append mode 'a' if you want to resume, 'w' to overwrite
             log_file_handle = open(log_file_path, 'w', encoding='utf-8', newline='')
             # Write header to log file
-            header = "TimestampKST,Latitude,Longitude,FixType,HPE_Message(m),NorthingError(m),EastingError(m),MessageRate(Hz)\n"
+            header = "TimestampKST,Latitude,Longitude,FixType,HPE(m),NorthingError(m),EastingError(m),MessageRate(Hz)\n"
             log_file_handle.write(header)
             log_file_handle.flush() # Ensure header is written
             console_logger.info(f"[Processor] Logging report data lines to '{log_file_path}' enabled.")
         except IOError as e:
             console_logger.error(f"[Processor] Failed to open log file {log_file_path}: {e}")
             log_file_handle = None # Ensure it's None if open fails
-            # log_enable_flag = False # Optionally disable logging if file fails
 
     report_interval_seconds = 1.0 / eval_hz if eval_hz > 0 else float('inf') # Avoid division by zero
     if report_interval_seconds == float('inf'):
