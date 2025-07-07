@@ -90,7 +90,7 @@ def parse_args(argv=None):
         default=argparse.SUPPRESS
     )
 
-    # others
+    # Others
     parser.add_argument(
         "-l", "--logger-level",
         choices=["debug", "info", "warning", "fatal", "error"],
@@ -150,7 +150,7 @@ def main(argv=None):
                 timeout=config_dict.get('serial_timeout'),
                 enableubx=True,
                 enablenmea=True,
-                measrate=100,
+                measrate=50, # 20 Hz measurement rate (below this, the module will struggle to keep up)
                 navrate=1,
                 navpriorate=30,
                 port_type=config_dict.get('serial_interface'),
@@ -176,7 +176,7 @@ def main(argv=None):
                 nmea_max_length=250,
                 nmea_min_length=0,
             ),
-            ntrip_server_hz=1,
+            ntrip_server_hz=10,
             stop_event=stop_event,
             nmea_queue=nmea_queue,
             rtcm_queue=rtcm_queue,
@@ -200,6 +200,8 @@ def main(argv=None):
             gnss_raw_queue=gnss_raw_queue,
             gnss_extra_queue=gnss_extra_queue,
             extrapolate_interval = 0.0095  # Default extrapolation interval (100 Hz)
+            # extrapolate_interval = 0.033  # Default extrapolation interval (30 Hz)
+            # extrapolate_interval=1.0
         )
         
         while not ublox_gnss_worker.run():

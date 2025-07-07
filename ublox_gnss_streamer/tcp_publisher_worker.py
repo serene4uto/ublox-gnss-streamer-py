@@ -79,18 +79,19 @@ class TcpPublisherWorker:
                     ts = ts.astimezone(KST)
                 else:
                     ts = datetime.fromtimestamp(ts, tz=KST)
-
+                    
                 # Build the schema
                 gnss_data = GnssDataSchema(
                     timestamp=ts,
+                    gnss_time=str(raw["gnss_time"]),
                     lat=raw["lat"],
                     lon=raw["lon"],
                     alt=raw["height"],
                     type=type_str,
-                    fixType=raw.get("fixType"),
-                    carrSoln=raw.get("carrSoln"),
-                    gnssFixOk=raw.get("gnssFixOk"),
-                    extrapolationError=raw.get("extrapolationError")
+                    # fixType=raw.get("fixType"),
+                    # carrSoln=raw.get("carrSoln"),
+                    # gnssFixOk=raw.get("gnssFixOk"),
+                    # extrapolationError=raw.get("extrapolationError")
                 )
 
                 with self.publisher_lock:

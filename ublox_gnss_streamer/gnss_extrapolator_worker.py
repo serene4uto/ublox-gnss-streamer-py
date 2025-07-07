@@ -35,6 +35,7 @@ class GnssExtrapolatorWorker:
                 self.gnss_extra_queue.append(
                     {
                         "timestamp": gnss_data["timestamp"],
+                        "gnss_time": gnss_data["gnss_time"],
                         "lat": gnss_data["lat"],
                         "lon": gnss_data["lon"],
                         "height": gnss_data["height"],
@@ -52,6 +53,7 @@ class GnssExtrapolatorWorker:
                     self.gnss_extra_queue.append(
                         {
                             "timestamp": extrapolated["timestamp"],
+                            "gnss_time": None,
                             "lat": extrapolated["lat"],
                             "lon": extrapolated["lon"],
                             "height": extrapolated["height"],

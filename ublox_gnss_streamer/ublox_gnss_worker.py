@@ -57,6 +57,7 @@ class UbloxGnssWorker:
                             # self.gnss_queue.append(gnss_json)
                             gnss_data = {
                                 "timestamp": time.time(),  # Use system time; or parsed.iTOW if you want GNSS time
+                                "gnss_time": f"{parsed.hour:02d}:{parsed.min:02d}:{parsed.second:02d}.{parsed.iTOW % 1000:03d}000",
                                 "lat": parsed.lat,
                                 "lon": parsed.lon,
                                 # Optionally, keep both altitudes:

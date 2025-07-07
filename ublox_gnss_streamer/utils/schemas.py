@@ -4,6 +4,7 @@ from typing import Literal
 
 class GnssDataSchema(BaseModel):
     timestamp: datetime
+    gnss_time: str
     lat: float
     lon: float
     alt: float
