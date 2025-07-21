@@ -38,10 +38,7 @@ class GnssExtrapolatorWorker:
                         "gnss_time": gnss_data["gnss_time"],
                         "lat": gnss_data["lat"],
                         "lon": gnss_data["lon"],
-                        "height": gnss_data["height"],
-                        "fixType": gnss_data["fixType"],
-                        "carrSoln": gnss_data["carrSoln"],
-                        "gnssFixOk": gnss_data["gnssFixOk"],
+                        "quality": gnss_data["quality"],
                         "extrapolated": False,  # Mark as not extrapolated
                     }
                 )
@@ -56,16 +53,11 @@ class GnssExtrapolatorWorker:
                             "gnss_time": None,
                             "lat": extrapolated["lat"],
                             "lon": extrapolated["lon"],
-                            "height": extrapolated["height"],
-                            "fixType": None,  # No fix type for extrapolated data
-                            "carrSoln": None,  # No carrier solution for extrapolated data
-                            "gnssFixOk": None,  # No GNSS fix status for extrapolated data
+                            "quality": None,
                             "extrapolated": True,  # Mark as extrapolated
                         }
                     )
                     
-
-
     def run(self):
         self._thread = threading.Thread(target=self._worker_loop, daemon=True)
         self._thread.start()

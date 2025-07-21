@@ -7,7 +7,7 @@ class GnssDataSchema(BaseModel):
     gnss_time: str
     lat: float
     lon: float
-    alt: float
+    # alt: float
     type: Literal[
         'extrapolated',     # Extrapolated data, not a real GNSS fix
         'no-fix',           # No GNSS fix available

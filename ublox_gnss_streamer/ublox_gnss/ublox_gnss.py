@@ -114,7 +114,6 @@ class UbloxGnss:
         
         msg = UBXMessage.config_set(layers, transaction, cfg_data)
         self._send_data(msg.serialize())
-        logger.debug("Sent config data to disable UART1 and UART2, enable USB.")
         
         self._enable_out_ubx(self.enableubx)
         self._enable_out_nmea(self.enablenmea)

@@ -58,20 +58,39 @@ class TcpPublisherWorker:
                 raw = self.gnss_queue.popleft()
 
                 # Determine 'type' field
+                # if raw.get("extrapolated"):
+                #     type_str = "extrapolated"
+                # elif not raw.get("gnssFixOk"):
+                #     type_str = "no-fix"
+                # elif raw.get("fixType") == 3 and raw.get("carrSoln") == 2:
+                #     type_str = "fixed-rtk"
+                # elif raw.get("fixType") == 3 and raw.get("carrSoln") == 1:
+                #     type_str = "float-rtk"
+                # elif raw.get("fixType") == 3 and raw.get("carrSoln") == 0:
+                #     type_str = "no-rtk"
+                # elif raw.get("fixType") == 4:
+                #     type_str = "dead-reckoning"
+                # else:
+                #     type_str = "no-rtk"
+                
                 if raw.get("extrapolated"):
                     type_str = "extrapolated"
-                elif not raw.get("gnssFixOk"):
+                elif raw.get("quality") == 0:
                     type_str = "no-fix"
-                elif raw.get("fixType") == 3 and raw.get("carrSoln") == 2:
+                elif raw.get("quality") == 1:
+                    type_str = "sps"
+                elif raw.get("quality") == 2:
+                    type_str = "dgps"
+                elif raw.get("quality") == 3:
+                    type_str = "pps"
+                elif raw.get("quality") == 4:
                     type_str = "fixed-rtk"
-                elif raw.get("fixType") == 3 and raw.get("carrSoln") == 1:
+                elif raw.get("quality") == 5:
                     type_str = "float-rtk"
-                elif raw.get("fixType") == 3 and raw.get("carrSoln") == 0:
-                    type_str = "no-rtk"
-                elif raw.get("fixType") == 4:
+                elif raw.get("quality") == 6:
                     type_str = "dead-reckoning"
                 else:
-                    type_str = "no-rtk"
+                    type_str = "unknown"
 
                 # Convert timestamp to KST
                 ts = raw["timestamp"]
@@ -86,7 +105,7 @@ class TcpPublisherWorker:
                     gnss_time=str(raw["gnss_time"]),
                     lat=raw["lat"],
                     lon=raw["lon"],
-                    alt=raw["height"],
+                    # alt=raw["height"],
                     type=type_str,
                     # fixType=raw.get("fixType"),
                     # carrSoln=raw.get("carrSoln"),
