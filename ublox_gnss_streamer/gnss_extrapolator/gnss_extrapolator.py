@@ -2,6 +2,7 @@ import time
 import numpy as np
 from collections import deque
 from pyproj import CRS, Transformer
+from ublox_gnss_streamer.utils.logger import logger
 
 # Only import GeoidHeight if needed (pyproj >= 3.6.0)
 try:
@@ -120,6 +121,27 @@ class GnssExtrapolator:
 
         last = self.buffer[-1]
         prev = self.buffer[-2]
+        
+        # Validate the last two fixes have valid lat/lon
+        try:
+            for fix, name in [(last, 'last'), (prev, 'prev')]:
+                lat_val = fix.get('lat')
+                lon_val = fix.get('lon')
+                if lat_val is None or lon_val is None or lat_val == '' or lon_val == '':
+                    logger.warning(f"Cannot extrapolate: {name} fix has invalid lat/lon: lat={lat_val}, lon={lon_val}")
+                    return None
+                
+                # Ensure they're numeric and in valid range
+                lat_float = float(lat_val)
+                lon_float = float(lon_val)
+                if not (-90 <= lat_float <= 90) or not (-180 <= lon_float <= 180):
+                    logger.warning(f"Cannot extrapolate: {name} fix has out-of-range lat/lon: lat={lat_float}, lon={lon_float}")
+                    return None
+                    
+        except (ValueError, TypeError) as e:
+            logger.warning(f"Cannot extrapolate: Invalid lat/lon in buffer: {e}")
+            return None
+        
         if target_time is None:
             target_time = time.time()
 

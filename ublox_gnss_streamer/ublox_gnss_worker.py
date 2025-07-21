@@ -84,11 +84,35 @@ class UbloxGnssWorker:
                         # <NMEA(GNGGA, time=07:15:58.300000, lat=36.1166575, NS=N, lon=128.364614, EW=E, quality=1, numSV=12, HDOP=0.56, alt=68.2, altUnit=M, sep=22.3, sepUnit=M, diffAge=, diffStation=)>
                         if hasattr(parsed, "time") and hasattr(parsed, "lat") and hasattr(parsed, "lon") \
                             and hasattr(parsed, "quality"):
+                            
+                            # Validate lat/lon values before processing
+                            try:
+                                lat_val = parsed.lat
+                                lon_val = parsed.lon
+                                
+                                # Skip if lat/lon are empty strings, None, or not convertible to float
+                                if lat_val is None or lon_val is None or lat_val == '' or lon_val == '':
+                                    logger.debug(f"Skipping GNSS data with invalid lat/lon: lat={lat_val}, lon={lon_val}")
+                                    continue
+                                
+                                # Try to convert to float to validate
+                                lat_float = float(lat_val)
+                                lon_float = float(lon_val)
+                                
+                                # Basic range validation for lat/lon
+                                if not (-90 <= lat_float <= 90) or not (-180 <= lon_float <= 180):
+                                    logger.debug(f"Skipping GNSS data with out-of-range lat/lon: lat={lat_float}, lon={lon_float}")
+                                    continue
+                                    
+                            except (ValueError, TypeError) as e:
+                                logger.debug(f"Skipping GNSS data with non-numeric lat/lon: lat={lat_val}, lon={lon_val}, error={e}")
+                                continue
+                            
                             gnss_data = {
                                 "timestamp": time.time(),  # Use system time; or parsed.time if you want GNSS time
                                 "gnss_time": parsed.time,
-                                "lat": parsed.lat,
-                                "lon": parsed.lon,
+                                "lat": lat_float,  # Use validated float value
+                                "lon": lon_float,  # Use validated float value
                                 "quality": parsed.quality,
                             }
                             self.gnss_queue.append(gnss_data)

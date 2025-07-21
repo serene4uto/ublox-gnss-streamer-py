@@ -1,5 +1,6 @@
 from threading import Thread, Event, Lock
 from collections import deque
+import time
 
 from .ntrip_client import NTRIPClient
 from ublox_gnss_streamer.utils.logger import logger
@@ -23,6 +24,9 @@ class NTRIPClientWorker:
         self.rtcm_queue = rtcm_queue
         
     def _worker_loop(self):
+        
+        rtcm_count = 0
+        last_rate_time = time.time()
 
         while not self.stop_event.is_set():
             if self.stop_event.wait(self.rtcm_request_rate):
@@ -43,6 +47,18 @@ class NTRIPClientWorker:
                     if rtcm is not None:
                         self.rtcm_queue.append(rtcm)
                         logger.debug(f"Received RTCM: {rtcm}")
+            
+            rtcm_count += 1
+            
+            if rtcm_count % 10 == 0:  # Report every 10 requests
+                current_time = time.time()
+                elapsed_time = current_time - last_rate_time
+                if elapsed_time > 0:
+                    rate = rtcm_count / elapsed_time
+                    logger.info(f"RTCM request rate: {rate:.2f} Hz")
+                    last_rate_time = current_time
+                    rtcm_count = 0
+                
             
     def run(self):
 

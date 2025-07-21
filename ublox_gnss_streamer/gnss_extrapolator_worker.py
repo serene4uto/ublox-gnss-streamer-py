@@ -31,13 +31,42 @@ class GnssExtrapolatorWorker:
                 # New GNSS fix available: add it, but do NOT extrapolate
                 gnss_data = self.gnss_raw_queue.popleft()
                 logger.debug(f"Received GNSS data for extrapolation: {gnss_data}")
-                self.gnss_extrapolator.add_fix(gnss_data)
+                
+                # Validate lat/lon values before processing
+                try:
+                    lat_val = gnss_data.get("lat")
+                    lon_val = gnss_data.get("lon")
+                    
+                    # Skip if lat/lon are empty strings, None, or not convertible to float
+                    if lat_val is None or lon_val is None or lat_val == '' or lon_val == '':
+                        logger.warning(f"Skipping GNSS extrapolation with invalid lat/lon: lat={lat_val}, lon={lon_val}")
+                        continue
+                    
+                    # Try to convert to float to validate
+                    lat_float = float(lat_val)
+                    lon_float = float(lon_val)
+                    
+                    # Basic range validation for lat/lon
+                    if not (-90 <= lat_float <= 90) or not (-180 <= lon_float <= 180):
+                        logger.warning(f"Skipping GNSS extrapolation with out-of-range lat/lon: lat={lat_float}, lon={lon_float}")
+                        continue
+                        
+                except (ValueError, TypeError) as e:
+                    logger.warning(f"Skipping GNSS extrapolation with non-numeric lat/lon: lat={lat_val}, lon={lon_val}, error={e}")
+                    continue
+                
+                # Create a copy with validated float values for the extrapolator
+                validated_gnss_data = gnss_data.copy()
+                validated_gnss_data["lat"] = lat_float
+                validated_gnss_data["lon"] = lon_float
+                
+                self.gnss_extrapolator.add_fix(validated_gnss_data)
                 self.gnss_extra_queue.append(
                     {
                         "timestamp": gnss_data["timestamp"],
                         "gnss_time": gnss_data["gnss_time"],
-                        "lat": gnss_data["lat"],
-                        "lon": gnss_data["lon"],
+                        "lat": lat_float,
+                        "lon": lon_float,
                         "quality": gnss_data["quality"],
                         "extrapolated": False,  # Mark as not extrapolated
                     }
