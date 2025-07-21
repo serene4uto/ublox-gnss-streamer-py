@@ -45,9 +45,21 @@ def parse_args(argv=None):
         help="Timeout in secs for the serial connection",
         default=argparse.SUPPRESS
     )
+    # parser.add_argument(
+    #     "-i", "--serial-interface", type=str,
+    #     help="Serial interface used on the module (e.g., UART1, USB, etc.)",
+    #     default=argparse.SUPPRESS
+    # )
+    
     parser.add_argument(
-        "-i", "--serial-interface", type=str,
-        help="Serial interface used on the module (e.g., UART1, USB, etc.)",
+        "-rp", "--rtcm-serial-port", type=str,
+        help="Serial port to connect to the GNSS device",
+        default=argparse.SUPPRESS
+    )
+    
+    parser.add_argument(
+        "-rb", "--rtcm-serial-baudrate", type=int,
+        help="Baudrate for the serial connection",
         default=argparse.SUPPRESS
     )
 
@@ -180,6 +192,9 @@ def main(argv=None):
             stop_event=stop_event,
             nmea_queue=nmea_queue,
             rtcm_queue=rtcm_queue,
+            serial_port=config_dict.get('rtcm_serial_port'),
+            serial_baudrate=config_dict.get('rtcm_serial_baudrate'),
+            serial_timeout=config_dict.get('serial_timeout', 1.0),
         )
         
         tcp_publisher_worker = TcpPublisherWorker(

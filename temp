@@ -31,3 +31,31 @@ python -m ublox_gnss_streamer.main \
 
 python -m ublox_gnss_streamer.main \
   --yaml-config /workspaces/ublox-gnss-streamer-py/ublox_gnss_streamer/config.yaml
+
+python -m ublox_gnss_streamer.main \
+  --serial-port /dev/ttyUSB0 \
+  --serial-baudrate 115200 \
+  --serial-timeout 1.0 \
+  --ntrip-host ntrip.hi-rtk.io \
+  --ntrip-port 2101 \
+  --ntrip-mountpoint SNS_AUTO \
+  --ntrip-username sns \
+  --ntrip-password 1234 \
+  --tcp-host 0.0.0.0 \
+  --tcp-port 5000 \
+  --logger-level info
+
+python -m ublox_gnss_streamer.main \
+  --serial-port /dev/ttyUSB0 
+  --serial-baudrate 921600 \
+  --serial-timeout 1.0 \
+  --ntrip-host ntrip.hi-rtk.io \
+  --ntrip-port 2101 \
+  --ntrip-mountpoint AUTO \
+  --ntrip-username sns \
+  --ntrip-password 1234 \
+  --tcp-host 0.0.0.0 \
+  --tcp-port 5000 \
+  --rtcm-serial-port /dev/ttyUSB1 \
+  --rtcm-serial-baudrate 921600 \
+  --logger-level info

@@ -52,12 +52,12 @@ class UbloxGnss:
         self.measrate = kwargs.get("measrate", 1000) # in ms
         self.navrate = kwargs.get("navrate", 1) # in hz (how many measurements per solution)
         self.navpriorate = kwargs.get("navpriorate", 1) 
-        self.port_type = kwargs.get("port_type", "USB")  # Default to USB, can be changed to UART1 or UART2
+        # self.port_type = kwargs.get("port_type", "USB")  # Default to USB, can be changed to UART1 or UART2
         self.stream = None
         self.connected = DISCONNECTED
         
-        if self.port_type not in PORT_TYPE:
-            raise ValueError(f"Invalid port type: {self.port_type}. Must be one of {PORT_TYPE}.")
+        # if self.port_type not in PORT_TYPE:
+        #     raise ValueError(f"Invalid port type: {self.port_type}. Must be one of {PORT_TYPE}.")
         
     def connect(self):
         self.stream = Serial(self.port, self.baudrate, timeout=self.timeout)
@@ -105,12 +105,12 @@ class UbloxGnss:
         layers = 1
         transaction = 0
         cfg_data = []
-        for port_type in ("USB", "UART1", "UART2"):
-            if port_type == self.port_type:
-                cfg_data.append((f"CFG_{port_type}_ENABLED", True))
-                cfg_data.append((f"CFG_{port_type}_ENABLED", True))
-            else:
-                cfg_data.append((f"CFG_{port_type}_ENABLED", False))
+        # for port_type in ("USB", "UART1", "UART2"):
+        #     if port_type == self.port_type:
+        #         cfg_data.append((f"CFG_{port_type}_ENABLED", True))
+        #         cfg_data.append((f"CFG_{port_type}_ENABLED", True))
+        #     else:
+        #         cfg_data.append((f"CFG_{port_type}_ENABLED", False))
         
         msg = UBXMessage.config_set(layers, transaction, cfg_data)
         self._send_data(msg.serialize())
@@ -148,7 +148,7 @@ class UbloxGnss:
         layers = 1
         transaction = 0
         cfg_data = []
-        for port_type in (self.port_type,):
+        for port_type in ("USB", "UART1", "UART2"):
             cfg_data.append((f"CFG_{port_type}INPROT_RTCM3X", enable))
 
         msg = UBXMessage.config_set(layers, transaction, cfg_data)
@@ -162,7 +162,7 @@ class UbloxGnss:
         layers = 1
         transaction = 0
         cfg_data = []
-        for port_type in (self.port_type,):
+        for port_type in ("USB", "UART1"):
             cfg_data.append((f"CFG_{port_type}OUTPROT_NMEA", enable))
             cfg_data.append((f"CFG_MSGOUT_NMEA_ID_GGA_{port_type}", 1 if enable else 0))
 
@@ -188,7 +188,7 @@ class UbloxGnss:
         layers = 1
         transaction = 0
         cfg_data = []
-        for port_type in (self.port_type,):
+        for port_type in ("USB", "UART1", "UART2"):
             cfg_data.append((f"CFG_{port_type}OUTPROT_UBX", enable))
             cfg_data.append((f"CFG_MSGOUT_UBX_NAV_PVT_{port_type}", 1 if enable else 0))
             # cfg_data.append((f"CFG_MSGOUT_UBX_NAV_COV_{port_type}", enable))
