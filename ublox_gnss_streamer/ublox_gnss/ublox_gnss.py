@@ -106,11 +106,11 @@ class UbloxGnss:
         transaction = 0
         cfg_data = []
         # for port_type in ("USB", "UART1", "UART2"):
-        #     if port_type == self.port_type:
-        #         cfg_data.append((f"CFG_{port_type}_ENABLED", True))
-        #         cfg_data.append((f"CFG_{port_type}_ENABLED", True))
-        #     else:
-        #         cfg_data.append((f"CFG_{port_type}_ENABLED", False))
+        #     # if port_type == self.port_type:
+        #     #     cfg_data.append((f"CFG_{port_type}_ENABLED", True))
+        #     # else:
+        #     #     cfg_data.append((f"CFG_{port_type}_ENABLED", False))
+        #     cfg_data.append((f"CFG_{port_type}_ENABLED", True))
         
         msg = UBXMessage.config_set(layers, transaction, cfg_data)
         self._send_data(msg.serialize())
@@ -124,7 +124,8 @@ class UbloxGnss:
         transaction = 0
         cfg_data = [] 
         # config Dynamic Model as automotive
-        cfg_data.append(("CFG_NAVSPG_DYNMODEL", 4)) # 4 = automotive
+        # cfg_data.append(("CFG_NAVSPG_DYNMODEL", 4)) # 4 = automotive
+        cfg_data.append(("CFG_NAVSPG_DYNMODEL", 0)) # 4 = portable
         msg = UBXMessage.config_set(layers, transaction, cfg_data)
         self._send_data(msg.serialize())
         logger.debug("Sent config data to set dynamic model to automotive.")
